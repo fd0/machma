@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/fd0/termstatus"
 	"github.com/spf13/pflag"
 )
@@ -102,6 +103,15 @@ func formatDuration(d time.Duration) string {
 	return fmt.Sprintf("%d:%02d", min, sec)
 }
 
+var (
+	colorTag       = color.New(color.FgYellow).SprintFunc()
+	colorError     = color.New(color.FgRed, color.Bold).SprintFunc()
+	colorSystem    = color.New(color.FgGreen).SprintFunc()
+	colorTimestamp = color.New(color.FgBlue).SprintFunc()
+
+	colorStatusLine = color.New(color.ReverseVideo, color.Bold).SprintFunc()
+)
+
 func updateTerminal(t *termstatus.Terminal, start time.Time, processed, failed int, data map[string]string) {
 	keys := make([]string, 0, len(data))
 	for k := range data {
@@ -110,12 +120,12 @@ func updateTerminal(t *termstatus.Terminal, start time.Time, processed, failed i
 	sort.Sort(sort.StringSlice(keys))
 
 	lines := make([]string, 0, len(data)+3)
-	lines = append(lines, fmt.Sprintf("[%s] %d processed (%d failed), %d/%d workers:",
+	lines = append(lines, colorStatusLine(fmt.Sprintf("[%s] %d processed (%d failed), %d/%d workers:",
 		formatDuration(time.Since(start)),
 		processed,
 		failed,
 		len(data),
-		opts.threads))
+		opts.threads)))
 
 	for _, key := range keys {
 		lines = append(lines, data[key])
@@ -162,19 +172,23 @@ func status(ctx context.Context, wg *sync.WaitGroup, t *termstatus.Terminal, out
 			}
 
 			if s.Done {
-				msg = fmt.Sprintf("%v done", s.Tag)
+				msg = fmt.Sprintf("%v", colorSystem("done"))
 			}
 
 			if s.Message != "" {
-				msg = fmt.Sprintf("%v %v", s.Tag, s.Message)
+				msg = s.Message
 				if s.Error {
-					msg = fmt.Sprintf("%v error %v", s.Tag, s.Message)
+					msg = fmt.Sprintf("%v %v", colorError("error"), colorError(s.Message))
 				}
-
-				t.Printf("%v %v", time.Now().Format(timeFormat), msg)
 			}
 
-			stat[s.Tag] = msg
+			if msg != "" {
+				t.Printf("%v %v %v",
+					colorTimestamp(time.Now().Format(timeFormat)),
+					colorTag(s.Tag), msg)
+			}
+
+			stat[s.Tag] = fmt.Sprintf("%v %v", colorTag(s.Tag), msg)
 
 			if s.Done {
 				stats.processed++
