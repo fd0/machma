@@ -7,6 +7,7 @@ import (
 	"os"
 	"runtime"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/fd0/termstatus"
@@ -33,7 +34,12 @@ func parseInput(ch chan<- *Command, cmd string, args []string) {
 		cmdName := cmd
 		cmdArgs := make([]string, len(args))
 
-		line := sc.Text()
+		line := strings.TrimSpace(sc.Text())
+
+		if line == "" {
+			fmt.Fprintf(os.Stderr, "ignoring empty line\n")
+			continue
+		}
 
 		if cmd == opts.placeholder {
 			cmdName = line
