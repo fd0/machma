@@ -102,23 +102,33 @@ func updateTerminal(t *termstatus.Terminal, data map[string]string) {
 	t.SetStatus(lines)
 }
 
-func status(ctx context.Context, t *termstatus.Terminal, output <-chan Status, error <-chan string) {
+func status(ctx context.Context, wg *sync.WaitGroup, t *termstatus.Terminal, outCh <-chan Status) {
+	defer wg.Done()
 	stat := make(map[string]string)
 
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case err := <-error:
-			t.Print(err)
-		case s := <-output:
-			if s.Done {
-				delete(stat, s.Tag)
-				continue
+		case s, ok := <-outCh:
+			if !ok {
+				return
 			}
-			t.Printf("%v %v", s.Tag, s.Message)
 
-			stat[s.Tag] = fmt.Sprintf("%v %v", s.Tag, s.Message)
+			if s.Message != "" {
+				msg := fmt.Sprintf("%v %v", s.Tag, s.Message)
+				if s.Error {
+					msg = fmt.Sprintf("%v error %v", s.Tag, s.Message)
+				}
+				t.Print(msg)
+
+				stat[s.Tag] = msg
+			}
+
+			if s.Done {
+				t.Printf("%v is done", s.Tag)
+				delete(stat, s.Tag)
+			}
 
 			updateTerminal(t, stat)
 		}
@@ -131,16 +141,17 @@ func main() {
 
 	t := termstatus.New(ctx, os.Stdout)
 	outCh := make(chan Status)
-	errCh := make(chan string)
 
-	go status(ctx, t, outCh, errCh)
+	var statusWg sync.WaitGroup
+	statusWg.Add(1)
+	go status(ctx, &statusWg, t, outCh)
 
 	ch := make(chan *Command)
 
-	var wg sync.WaitGroup
+	var workersWg sync.WaitGroup
 	for i := 0; i < opts.threads; i++ {
-		wg.Add(1)
-		go worker(&wg, ch, outCh, errCh)
+		workersWg.Add(1)
+		go worker(&workersWg, ch, outCh)
 	}
 
 	args := pflag.Args()
@@ -157,7 +168,10 @@ func main() {
 
 	go parseInput(ch, cmdname, args)
 
-	wg.Wait()
+	workersWg.Wait()
+	close(outCh)
+
+	statusWg.Wait()
 
 	t.Finish()
 }

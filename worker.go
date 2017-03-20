@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"os/exec"
 	"sync"
@@ -17,7 +16,7 @@ type Command struct {
 }
 
 // Run executes the command.
-func (c *Command) Run(outCh chan<- Status, errCh chan<- string) error {
+func (c *Command) Run(outCh chan<- Status) error {
 	cmd := exec.Command(c.Cmd, c.Args...)
 
 	stdout, err := cmd.StdoutPipe()
@@ -33,19 +32,20 @@ func (c *Command) Run(outCh chan<- Status, errCh chan<- string) error {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
-	go tagLines(&wg, c.Tag, stdout, outCh)
-	go tagErrors(&wg, fmt.Sprintf("[%v] error: ", c.Tag), stderr, errCh)
+	go tagLines(&wg, c.Tag, false, stdout, outCh)
+	go tagLines(&wg, c.Tag, true, stderr, outCh)
 
 	defer wg.Wait()
 
 	return cmd.Run()
 }
 
-func tagLines(wg *sync.WaitGroup, tag string, input io.Reader, out chan<- Status) {
+func tagLines(wg *sync.WaitGroup, tag string, isError bool, input io.Reader, out chan<- Status) {
 	defer wg.Done()
 	sc := bufio.NewScanner(input)
 	for sc.Scan() {
 		out <- Status{
+			Error:   isError,
 			Tag:     tag,
 			Message: sc.Text(),
 		}
@@ -60,18 +60,19 @@ func tagErrors(wg *sync.WaitGroup, tag string, input io.Reader, out chan<- strin
 	}
 }
 
-func worker(wg *sync.WaitGroup, in <-chan *Command, outCh chan<- Status, errCh chan<- string) {
+func worker(wg *sync.WaitGroup, in <-chan *Command, outCh chan<- Status) {
 	defer wg.Done()
 
 	for cmd := range in {
-		err := cmd.Run(outCh, errCh)
-		if err != nil {
-			errCh <- fmt.Sprintf("%v failed: %v\n", cmd.Tag, err)
-		}
-
-		outCh <- Status{
+		err := cmd.Run(outCh)
+		finalStatus := Status{
 			Tag:  cmd.Tag,
 			Done: true,
 		}
+		if err != nil {
+			finalStatus.Error = true
+			finalStatus.Message = err.Error()
+		}
+		outCh <- finalStatus
 	}
 }
