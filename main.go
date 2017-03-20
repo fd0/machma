@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/fd0/termstatus"
 	"github.com/spf13/pflag"
@@ -85,7 +86,21 @@ type Status struct {
 	Error   bool
 }
 
-func updateTerminal(t *termstatus.Terminal, data map[string]string) {
+func formatDuration(d time.Duration) string {
+	sec := uint64(d / time.Second)
+
+	hours := sec / 3600
+	sec -= hours * 3600
+	min := sec / 60
+	sec -= min * 60
+	if hours > 0 {
+		return fmt.Sprintf("%d:%02d:%02d", hours, min, sec)
+	}
+
+	return fmt.Sprintf("%d:%02d", min, sec)
+}
+
+func updateTerminal(t *termstatus.Terminal, start time.Time, processed, failed int, data map[string]string) {
 	keys := make([]string, 0, len(data))
 	for k := range data {
 		keys = append(keys, k)
@@ -93,8 +108,13 @@ func updateTerminal(t *termstatus.Terminal, data map[string]string) {
 	sort.Sort(sort.StringSlice(keys))
 
 	lines := make([]string, 0, len(data)+3)
-	lines = append(lines, "\n")
-	lines = append(lines, fmt.Sprintf("Last output of %d workers:", opts.threads))
+	lines = append(lines, fmt.Sprintf("[%s] %d processed (%d failed), %d/%d workers:",
+		formatDuration(time.Since(start)),
+		processed,
+		failed,
+		len(data),
+		opts.threads))
+
 	for _, key := range keys {
 		lines = append(lines, data[key])
 	}
@@ -105,6 +125,23 @@ func updateTerminal(t *termstatus.Terminal, data map[string]string) {
 func status(ctx context.Context, wg *sync.WaitGroup, t *termstatus.Terminal, outCh <-chan Status) {
 	defer wg.Done()
 	stat := make(map[string]string)
+
+	start := time.Now()
+	ticker := time.NewTicker(200 * time.Millisecond)
+	defer ticker.Stop()
+
+	var stats = struct {
+		processed int
+		failed    int
+	}{}
+
+	defer func() {
+		t.Finish()
+		fmt.Printf("\nprocessed %d items (%d failures) in %s\n",
+			stats.processed,
+			stats.failed,
+			formatDuration(time.Since(start)))
+	}()
 
 	for {
 		select {
@@ -127,10 +164,18 @@ func status(ctx context.Context, wg *sync.WaitGroup, t *termstatus.Terminal, out
 
 			if s.Done {
 				t.Printf("%v is done", s.Tag)
+				stats.processed++
+
+				if s.Error {
+					stats.failed++
+				}
+
 				delete(stat, s.Tag)
 			}
 
-			updateTerminal(t, stat)
+			updateTerminal(t, start, stats.processed, stats.failed, stat)
+		case <-ticker.C:
+			updateTerminal(t, start, stats.processed, stats.failed, stat)
 		}
 	}
 }
@@ -172,6 +217,4 @@ func main() {
 	close(outCh)
 
 	statusWg.Wait()
-
-	t.Finish()
 }
