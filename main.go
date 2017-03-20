@@ -106,7 +106,6 @@ func formatDuration(d time.Duration) string {
 var (
 	colorTag       = color.New(color.FgYellow).SprintFunc()
 	colorError     = color.New(color.FgRed, color.Bold).SprintFunc()
-	colorSystem    = color.New(color.FgGreen).SprintFunc()
 	colorTimestamp = color.New(color.FgBlue).SprintFunc()
 
 	colorStatusLine = color.New(color.ReverseVideo, color.Bold).SprintFunc()
@@ -120,10 +119,10 @@ func updateTerminal(t *termstatus.Terminal, start time.Time, processed, failed i
 	sort.Sort(sort.StringSlice(keys))
 
 	lines := make([]string, 0, len(data)+3)
-	lines = append(lines, colorStatusLine(fmt.Sprintf("[%s] %d processed (%d failed), %d/%d workers:",
+	lines = append(lines, colorStatusLine(fmt.Sprintf("[%s] %d processed (%s failed), %d/%d workers:",
 		formatDuration(time.Since(start)),
 		processed,
-		failed,
+		colorError(failed),
 		len(data),
 		opts.threads)))
 
@@ -169,10 +168,6 @@ func status(ctx context.Context, wg *sync.WaitGroup, t *termstatus.Terminal, out
 			var msg string
 			if s.Start {
 				msg = s.Tag
-			}
-
-			if s.Done {
-				msg = fmt.Sprintf("%v", colorSystem("done"))
 			}
 
 			if s.Message != "" {
