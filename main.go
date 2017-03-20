@@ -104,11 +104,11 @@ func formatDuration(d time.Duration) string {
 }
 
 var (
-	colorTag       = color.New(color.FgYellow).SprintFunc()
-	colorError     = color.New(color.FgRed, color.Bold).SprintFunc()
-	colorTimestamp = color.New(color.FgBlue).SprintFunc()
+	colorTag       = color.New(color.Reset, color.FgYellow).SprintFunc()
+	colorError     = color.New(color.Reset, color.FgRed, color.Bold).SprintFunc()
+	colorTimestamp = color.New(color.Reset, color.FgBlue).SprintFunc()
 
-	colorStatusLine = color.New(color.ReverseVideo, color.Bold).SprintFunc()
+	colorStatusLine = color.New(color.Bold, color.ReverseVideo).SprintFunc()
 )
 
 func updateTerminal(t *termstatus.Terminal, start time.Time, processed, failed int, data map[string]string) {
@@ -119,10 +119,10 @@ func updateTerminal(t *termstatus.Terminal, start time.Time, processed, failed i
 	sort.Sort(sort.StringSlice(keys))
 
 	lines := make([]string, 0, len(data)+3)
-	lines = append(lines, colorStatusLine(fmt.Sprintf("[%s] %d processed (%s failed), %d/%d workers:",
+	lines = append(lines, colorStatusLine(fmt.Sprintf("[%s] %d processed (%d failed), %d/%d workers:",
 		formatDuration(time.Since(start)),
 		processed,
-		colorError(failed),
+		failed,
 		len(data),
 		opts.threads)))
 
@@ -166,10 +166,6 @@ func status(ctx context.Context, wg *sync.WaitGroup, t *termstatus.Terminal, out
 			}
 
 			var msg string
-			if s.Start {
-				msg = s.Tag
-			}
-
 			if s.Message != "" {
 				msg = s.Message
 				if s.Error {
