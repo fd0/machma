@@ -82,8 +82,10 @@ func checkForPlaceholder(cmdname string, args []string) {
 type Status struct {
 	Tag     string
 	Message string
-	Done    bool
 	Error   bool
+
+	Done  bool
+	Start bool
 }
 
 func formatDuration(d time.Duration) string {
@@ -122,6 +124,8 @@ func updateTerminal(t *termstatus.Terminal, start time.Time, processed, failed i
 	t.SetStatus(lines)
 }
 
+const timeFormat = "2006-01-02 15:04:05"
+
 func status(ctx context.Context, wg *sync.WaitGroup, t *termstatus.Terminal, outCh <-chan Status) {
 	defer wg.Done()
 	stat := make(map[string]string)
@@ -152,18 +156,27 @@ func status(ctx context.Context, wg *sync.WaitGroup, t *termstatus.Terminal, out
 				return
 			}
 
-			if s.Message != "" {
-				msg := fmt.Sprintf("%v %v", s.Tag, s.Message)
-				if s.Error {
-					msg = fmt.Sprintf("%v error %v", s.Tag, s.Message)
-				}
-				t.Print(msg)
-
-				stat[s.Tag] = msg
+			var msg string
+			if s.Start {
+				msg = s.Tag
 			}
 
 			if s.Done {
-				t.Printf("%v is done", s.Tag)
+				msg = fmt.Sprintf("%v done", s.Tag)
+			}
+
+			if s.Message != "" {
+				msg = fmt.Sprintf("%v %v", s.Tag, s.Message)
+				if s.Error {
+					msg = fmt.Sprintf("%v error %v", s.Tag, s.Message)
+				}
+
+				t.Printf("%v %v", time.Now().Format(timeFormat), msg)
+			}
+
+			stat[s.Tag] = msg
+
+			if s.Done {
 				stats.processed++
 
 				if s.Error {

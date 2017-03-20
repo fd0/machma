@@ -64,6 +64,11 @@ func worker(wg *sync.WaitGroup, in <-chan *Command, outCh chan<- Status) {
 	defer wg.Done()
 
 	for cmd := range in {
+		outCh <- Status{
+			Tag:   cmd.Tag,
+			Start: true,
+		}
+
 		err := cmd.Run(outCh)
 		finalStatus := Status{
 			Tag:  cmd.Tag,
