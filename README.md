@@ -39,7 +39,7 @@ $ cat /tmp/ip-address-list | machma -p -- ping -c 2 -q {}
 ```
 
 The program `ping` will exit with an error code when the host is not reachable,
-and `machm` prints an error message for all jobs which returned an error code.
+and `machma` prints an error message for all jobs which returned an error code.
 
 ![demo: ping hosts](demo2.gif)
 
