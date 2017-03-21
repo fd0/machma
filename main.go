@@ -17,20 +17,45 @@ import (
 )
 
 var opts = struct {
-	threads     int
-	placeholder string
+	threads          int
+	placeholder      string
+	useNullSeparator bool
 }{}
 
 func init() {
 	pflag.IntVarP(&opts.threads, "procs", "p", runtime.NumCPU(), "number of parallel porgrams")
 	pflag.StringVar(&opts.placeholder, "replace", "{}", "replace this string in the command to run")
+	pflag.BoolVarP(&opts.useNullSeparator, "null", "0", false, "use null bytes as input separator")
 	pflag.Parse()
+}
+
+// ScanNullSeparatedValues splits data by null bytes
+func ScanNullSeparatedValues(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	if atEOF && len(data) == 0 {
+		return 0, nil, nil
+	}
+
+	for i, b := range data {
+		if b == 0 {
+			return i + 1, data[:i], nil
+		}
+	}
+
+	if atEOF {
+		return len(data), data, nil
+	}
+
+	return 0, nil, nil
 }
 
 func parseInput(ch chan<- *Command, cmd string, args []string) {
 	defer close(ch)
 
 	sc := bufio.NewScanner(os.Stdin)
+
+	if opts.useNullSeparator {
+		sc.Split(ScanNullSeparatedValues)
+	}
 
 	for sc.Scan() {
 		cmdName := cmd
@@ -39,7 +64,7 @@ func parseInput(ch chan<- *Command, cmd string, args []string) {
 		line := strings.TrimSpace(sc.Text())
 
 		if line == "" {
-			fmt.Fprintf(os.Stderr, "ignoring empty line\n")
+			fmt.Fprintf(os.Stderr, "ignoring empty item\n")
 			continue
 		}
 
