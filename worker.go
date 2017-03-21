@@ -12,6 +12,7 @@ type Command struct {
 	Cmd  string
 	Args []string
 
+	ID  int
 	Tag string
 }
 
@@ -32,21 +33,22 @@ func (c *Command) Run(outCh chan<- Status) error {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
-	go tagLines(&wg, c.Tag, false, stdout, outCh)
-	go tagLines(&wg, c.Tag, true, stderr, outCh)
+	go c.tagLines(&wg, false, stdout, outCh)
+	go c.tagLines(&wg, true, stderr, outCh)
 
 	defer wg.Wait()
 
 	return cmd.Run()
 }
 
-func tagLines(wg *sync.WaitGroup, tag string, isError bool, input io.Reader, out chan<- Status) {
+func (c *Command) tagLines(wg *sync.WaitGroup, isError bool, input io.Reader, out chan<- Status) {
 	defer wg.Done()
 	sc := bufio.NewScanner(input)
 	for sc.Scan() {
 		out <- Status{
 			Error:   isError,
-			Tag:     tag,
+			Tag:     c.Tag,
+			ID:      c.ID,
 			Message: sc.Text(),
 		}
 	}
@@ -66,12 +68,14 @@ func worker(wg *sync.WaitGroup, in <-chan *Command, outCh chan<- Status) {
 	for cmd := range in {
 		outCh <- Status{
 			Tag:   cmd.Tag,
+			ID:    cmd.ID,
 			Start: true,
 		}
 
 		err := cmd.Run(outCh)
 		finalStatus := Status{
 			Tag:  cmd.Tag,
+			ID:   cmd.ID,
 			Done: true,
 		}
 		if err != nil {

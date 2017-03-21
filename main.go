@@ -57,6 +57,7 @@ func parseInput(ch chan<- *Command, cmd string, args []string) {
 		sc.Split(ScanNullSeparatedValues)
 	}
 
+	jobnum := 1
 	for sc.Scan() {
 		cmdName := cmd
 		cmdArgs := make([]string, len(args))
@@ -82,10 +83,12 @@ func parseInput(ch chan<- *Command, cmd string, args []string) {
 		}
 
 		ch <- &Command{
+			ID:   jobnum,
 			Tag:  line,
 			Cmd:  cmdName,
 			Args: cmdArgs,
 		}
+		jobnum++
 	}
 }
 
@@ -106,6 +109,7 @@ func checkForPlaceholder(cmdname string, args []string) {
 
 // Status is one message printed by a command.
 type Status struct {
+	ID      int
 	Tag     string
 	Message string
 	Error   bool
@@ -129,9 +133,10 @@ func formatDuration(d time.Duration) string {
 }
 
 var (
+	colorNumber    = color.New(color.Reset, color.FgGreen).SprintFunc()
+	colorTimestamp = color.New(color.Reset, color.FgBlue).SprintFunc()
 	colorTag       = color.New(color.Reset, color.FgYellow).SprintFunc()
 	colorError     = color.New(color.Reset, color.FgRed, color.Bold).SprintFunc()
-	colorTimestamp = color.New(color.Reset, color.FgBlue).SprintFunc()
 
 	colorStatusLine = color.New(color.Bold, color.ReverseVideo).SprintFunc()
 )
@@ -199,7 +204,8 @@ func status(ctx context.Context, wg *sync.WaitGroup, t *termstatus.Terminal, out
 			}
 
 			if msg != "" {
-				t.Printf("%v %v %v",
+				t.Printf("%v %v %v %v",
+					colorNumber(s.ID),
 					colorTimestamp(time.Now().Format(timeFormat)),
 					colorTag(s.Tag), msg)
 			}
