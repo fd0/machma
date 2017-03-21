@@ -19,7 +19,7 @@ Resize all images found in the current directory and sub-directories to
 1200x1200 pixel at most:
 
 ```shell
-$ find . -iname '*.jpg' | machma --  mogrify -resize 1200x1200 {}
+$ find . -iname '*.jpg' | machma --  mogrify -resize 1200x1200 -filter Lanczos {}
 ```
 
 The command specified after the double dash (`--`) is executed with each
