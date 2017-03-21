@@ -52,6 +52,19 @@ $ cat /tmp/ips | machma -- sh -c 'ping -c 2 -q $0 > /dev/null && echo alive' {}
 
 ![demo: ping hosts again](demo2b.gif)
 
+### Files With Spaces
+
+Sometimes filenames have spaces, which may be problematic with shell commands.
+Most of the time, this should not be a problem at all, since `machma` runs
+programs directly (using the `execve` syscall on Linux for example) instead of
+using `system()`. For all other cases there's the `--null` (short: `-0`) option
+which instructs `machma` to read items separated by null bytes from stdin. This
+can be used with the option `-print0` of the `find` command like this:
+
+```shell
+$ find . -iname '*.jpg' -print0 | machma --null --  mogrify -resize 1200x1200 -filter Lanczos {}
+```
+
 ## Installation
 
 Installation is very easy, install a recent version of Go and run:
