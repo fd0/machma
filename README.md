@@ -43,6 +43,15 @@ and `machma` prints an error message for all jobs which returned an error code.
 
 ![demo: ping hosts](demo2.gif)
 
+A slightly more sophisticated (concerning shell magic) example is the
+following, which does the same but recduces the output printed by `ping` a lot:
+
+```shell
+$ cat /tmp/ips | machma -- sh -c 'ping -c 2 -q $0 > /dev/null && echo alive' {}
+```
+
+![demo: ping hosts again](demo2b.gif)
+
 ## Installation
 
 Installation is very easy, install a recent version of Go and run:
