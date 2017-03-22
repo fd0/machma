@@ -35,7 +35,7 @@ processed followed by the newest message printed by the program.
 Ping a large number of hosts, but only run two jobs in parallel:
 
 ```shell
-$ cat /tmp/ip-address-list | machma -p -- ping -c 2 -q {}
+$ cat /tmp/ip-address-list | machma -p 2 -- ping -c 2 -q {}
 ```
 
 The program `ping` will exit with an error code when the host is not reachable,
