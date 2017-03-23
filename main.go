@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"runtime"
 	"sort"
@@ -180,7 +181,7 @@ func status(ctx context.Context, wg *sync.WaitGroup, t *termstatus.Terminal, out
 
 	defer func() {
 		t.Finish()
-		fmt.Printf("\nprocessed %d items (%d failures) in %s\n",
+		fmt.Fprintf(color.Output, "\nprocessed %d items (%d failures) in %s\n",
 			stats.processed,
 			stats.failed,
 			formatDuration(time.Since(start)))
@@ -229,11 +230,23 @@ func status(ctx context.Context, wg *sync.WaitGroup, t *termstatus.Terminal, out
 	}
 }
 
+type fakeTerminal struct {
+	io.Writer
+	fd uintptr
+}
+
+func (t fakeTerminal) Fd() uintptr { return t.fd }
+
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	t := termstatus.New(ctx, os.Stdout)
+	var t *termstatus.Terminal
+	if runtime.GOOS == "windows" {
+		t = termstatus.New(ctx, &fakeTerminal{color.Output, os.Stdout.Fd()})
+	} else {
+		t = termstatus.New(ctx, os.Stdout)
+	}
 	outCh := make(chan Status)
 
 	var statusWg sync.WaitGroup
