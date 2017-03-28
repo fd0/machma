@@ -61,7 +61,7 @@ func parseInput(ch chan<- *Command, cmd string, args []string) {
 	jobnum := 1
 	for sc.Scan() {
 		cmdName := cmd
-		cmdArgs := make([]string, len(args))
+		cmdArgs := make([]string, 0, len(args))
 
 		line := strings.TrimSpace(sc.Text())
 
@@ -70,17 +70,10 @@ func parseInput(ch chan<- *Command, cmd string, args []string) {
 			continue
 		}
 
-		if cmd == opts.placeholder {
-			cmdName = line
-		}
+		cmdName = strings.Replace(cmd, opts.placeholder, line, -1)
 
-		for i, arg := range args {
-			if arg == opts.placeholder {
-				cmdArgs[i] = line
-				continue
-			}
-
-			cmdArgs[i] = args[i]
+		for _, arg := range args {
+			cmdArgs = append(cmdArgs, strings.Replace(arg, opts.placeholder, line, -1))
 		}
 
 		ch <- &Command{
