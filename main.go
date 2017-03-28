@@ -92,7 +92,7 @@ func checkForPlaceholder(cmdname string, args []string) {
 	}
 
 	for _, arg := range args {
-		if arg == opts.placeholder {
+		if strings.Contains(arg, opts.placeholder) {
 			return
 		}
 	}
