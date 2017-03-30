@@ -135,7 +135,19 @@ var (
 	colorStatusLine = color.New(color.Bold, color.ReverseVideo).SprintFunc()
 )
 
+var (
+	lastLineCount          = 0
+	lastLineCountReduction time.Time
+	smoothLines            = 0
+	lastUpdate             time.Time
+)
+
 func updateTerminal(t *termstatus.Terminal, start time.Time, processed, failed int, data map[string]string) {
+	if time.Since(lastUpdate) < 50*time.Millisecond {
+		return
+	}
+	lastUpdate = time.Now()
+
 	keys := make([]string, 0, len(data))
 	for k := range data {
 		keys = append(keys, k)
@@ -153,6 +165,24 @@ func updateTerminal(t *termstatus.Terminal, start time.Time, processed, failed i
 	for _, key := range keys {
 		lines = append(lines, data[key])
 	}
+
+	lineCount := len(lines)
+
+	if lineCount > smoothLines {
+		smoothLines = lineCount
+	} else if lineCount < lastLineCount {
+		lastLineCountReduction = time.Now()
+	}
+
+	if time.Since(lastLineCountReduction) > 500*time.Millisecond {
+		smoothLines = lineCount
+	}
+
+	for i := 0; i < smoothLines-lineCount; i++ {
+		lines = append(lines, "\n")
+	}
+
+	lastLineCount = lineCount
 
 	t.SetStatus(lines)
 }
