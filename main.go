@@ -179,7 +179,7 @@ func updateTerminal(t *termstatus.Terminal, start time.Time, processed, failed i
 	}
 
 	for i := 0; i < smoothLines-lineCount; i++ {
-		lines = append(lines, "\n")
+		lines = append(lines, "")
 	}
 
 	lastLineCount = lineCount
