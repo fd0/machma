@@ -77,6 +77,9 @@ Afterwards you can view the online help:
 ```shell
 $ machma --help
 Usage of machma:
+      --no-id            hide the job id in the log
+      --no-name          hide the job name in the log
+      --no-timestamp     hide the time stamp in the log
   -0, --null             use null bytes as input separator
   -p, --procs int        number of parallel porgrams (default 4)
       --replace string   replace this string in the command to run (default "{}")
