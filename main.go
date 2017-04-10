@@ -21,12 +21,18 @@ var opts = struct {
 	threads          int
 	placeholder      string
 	useNullSeparator bool
+	hideJobID        bool
+	hideTimestamp    bool
+	hideName         bool
 }{}
 
 func init() {
 	pflag.IntVarP(&opts.threads, "procs", "p", runtime.NumCPU(), "number of parallel porgrams")
 	pflag.StringVar(&opts.placeholder, "replace", "{}", "replace this string in the command to run")
 	pflag.BoolVarP(&opts.useNullSeparator, "null", "0", false, "use null bytes as input separator")
+	pflag.BoolVar(&opts.hideJobID, "no-id", false, "hide the job id in the log")
+	pflag.BoolVar(&opts.hideTimestamp, "no-timestamp", false, "hide the time stamp in the log")
+	pflag.BoolVar(&opts.hideName, "no-name", false, "hide the job name in the log")
 	pflag.Parse()
 }
 
@@ -228,10 +234,20 @@ func status(ctx context.Context, wg *sync.WaitGroup, t *termstatus.Terminal, out
 			}
 
 			if msg != "" {
-				t.Printf("%v %v %v %v",
-					colorNumber(s.ID),
-					colorTimestamp(time.Now().Format(timeFormat)),
-					colorTag(s.Tag), msg)
+				m := ""
+				if !opts.hideJobID {
+					m += colorNumber(s.ID) + " "
+				}
+
+				if !opts.hideTimestamp {
+					m += colorTimestamp(time.Now().Format(timeFormat)) + " "
+				}
+
+				if !opts.hideName {
+					m += colorTag(s.Tag) + " "
+				}
+
+				t.Print(m + msg)
 			}
 
 			stat[s.Tag] = fmt.Sprintf("%v %v", colorTag(s.Tag), msg)
