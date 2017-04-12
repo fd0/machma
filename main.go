@@ -20,6 +20,7 @@ import (
 var opts = struct {
 	threads          int
 	placeholder      string
+	workerTimeout    time.Duration
 	useNullSeparator bool
 	hideJobID        bool
 	hideTimestamp    bool
@@ -29,6 +30,7 @@ var opts = struct {
 func init() {
 	pflag.IntVarP(&opts.threads, "procs", "p", runtime.NumCPU(), "number of parallel porgrams")
 	pflag.StringVar(&opts.placeholder, "replace", "{}", "replace this string in the command to run")
+	pflag.DurationVar(&opts.workerTimeout, "timeout", 0*time.Second, "set maximum runtime per queued job (0s == no limit)")
 	pflag.BoolVarP(&opts.useNullSeparator, "null", "0", false, "use null bytes as input separator")
 	pflag.BoolVar(&opts.hideJobID, "no-id", false, "hide the job id in the log")
 	pflag.BoolVar(&opts.hideTimestamp, "no-timestamp", false, "hide the time stamp in the log")

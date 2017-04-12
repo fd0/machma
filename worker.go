@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"io"
 	"os/exec"
 	"sync"
@@ -17,14 +18,12 @@ type Command struct {
 }
 
 // Run executes the command.
-func (c *Command) Run(outCh chan<- Status) error {
-	cmd := exec.Command(c.Cmd, c.Args...)
-
+func (c *Command) Run(ctx context.Context, outCh chan<- Status) error {
+	cmd := exec.CommandContext(ctx, c.Cmd, c.Args...)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return err
 	}
-
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		return err
@@ -32,13 +31,12 @@ func (c *Command) Run(outCh chan<- Status) error {
 
 	var wg sync.WaitGroup
 	wg.Add(2)
-
 	go c.tagLines(&wg, false, stdout, outCh)
 	go c.tagLines(&wg, true, stderr, outCh)
+	err = cmd.Run()
+	wg.Wait()
 
-	defer wg.Wait()
-
-	return cmd.Run()
+	return err
 }
 
 func (c *Command) tagLines(wg *sync.WaitGroup, isError bool, input io.Reader, out chan<- Status) {
@@ -72,7 +70,13 @@ func worker(wg *sync.WaitGroup, in <-chan *Command, outCh chan<- Status) {
 			Start: true,
 		}
 
-		err := cmd.Run(outCh)
+		ctx := context.Background()
+		var cancel context.CancelFunc
+		if opts.workerTimeout > 0 {
+			ctx, cancel = context.WithTimeout(context.Background(), opts.workerTimeout)
+		}
+
+		err := cmd.Run(ctx, outCh)
 		finalStatus := Status{
 			Tag:  cmd.Tag,
 			ID:   cmd.ID,
@@ -83,5 +87,9 @@ func worker(wg *sync.WaitGroup, in <-chan *Command, outCh chan<- Status) {
 			finalStatus.Message = err.Error()
 		}
 		outCh <- finalStatus
+
+		if cancel != nil {
+			cancel()
+		}
 	}
 }
