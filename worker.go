@@ -54,14 +54,6 @@ func (c *Command) tagLines(wg *sync.WaitGroup, isError bool, input io.Reader, ou
 	}
 }
 
-func tagErrors(wg *sync.WaitGroup, tag string, input io.Reader, out chan<- string) {
-	defer wg.Done()
-	sc := bufio.NewScanner(input)
-	for sc.Scan() {
-		out <- sc.Text()
-	}
-}
-
 func worker(wg *sync.WaitGroup, in <-chan *Command, outCh chan<- Status) {
 	defer wg.Done()
 
