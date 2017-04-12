@@ -55,9 +55,9 @@ $ cat /tmp/ips | machma -- sh -c 'ping -c 2 -q $0 > /dev/null && echo alive' {}
 ![demo: ping hosts again](demo2b.gif)
 
 
-Using --timeout you can limit the time mogrify is allowed to run per picture. (Prevent jobs from 'locking up')
-The value for --timeout is formatted in golang time.Duration format (see: https://golang.org/pkg/time/#Duration).
-When the timeout is reached the background command gets canceled.
+Using `--timeout` you can limit the time mogrify is allowed to run per picture. (Prevent jobs from 'locking up')
+The value for timeout is formatted in golang [time.Duration format](https://golang.org/pkg/time/#Duration).
+When the timeout is reached the program gets canceled.
 
 ```shell
 $ find . -iname '*.jpg' | machma --timeout 5s --  mogrify -resize 1200x1200 -filter Lanczos {}
