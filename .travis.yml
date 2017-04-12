@@ -7,6 +7,10 @@ go:
   - 1.8.1
   - tip
 
+matrix:
+  allow_failures:
+    - go: tip
+
 install:
   - go version
   - export GOBIN="$GOPATH/bin"
