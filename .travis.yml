@@ -18,12 +18,16 @@ install:
   - go get -u github.com/golang/lint/golint
   - go get golang.org/x/tools/cmd/goimports
   - go get github.com/mitchellh/gox
+  - go get honnef.co/go/tools/...
   - go get -t .
 
 script:
   - go test -v
   - gox -os="linux windows freebsd openbsd"
   - diff <(goimports -d .) <(printf "")
+  - diff <(unused .) <(printf "")
+  - diff <(gosimple .) <(printf "")
+  - diff <(staticcheck .) <(printf "")
 
 after_success:
   - diff <(golint ./...) <(printf "")
