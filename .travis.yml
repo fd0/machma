@@ -1,0 +1,24 @@
+language: go
+dist: trusty
+sudo: false
+
+go:
+  - 1.7.5
+  - 1.8.1
+  - tip
+
+install:
+  - go version
+  - export GOBIN="$GOPATH/bin"
+  - export PATH="$PATH:$GOBIN"
+  - go get -u github.com/golang/lint/golint
+  - go get golang.org/x/tools/cmd/goimports
+  - go get github.com/mitchellh/gox
+
+script:
+  - go test -v
+  - gox -os="linux windows freebsd openbsd"
+  - diff <(goimports -d .) <(printf "")
+
+after_success:
+  - diff <(golint ./...) <(printf "")

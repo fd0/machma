@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/fd0/machma.svg?branch=master)](https://travis-ci.org/fd0/machma)
+
 # machma - Easy parallel execution of commands with live feedback
 
 ## Introduction
