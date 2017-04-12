@@ -52,6 +52,15 @@ $ cat /tmp/ips | machma -- sh -c 'ping -c 2 -q $0 > /dev/null && echo alive' {}
 
 ![demo: ping hosts again](demo2b.gif)
 
+
+Using --timeout you can limit the time mogrify is allowed to run per picture. (Prevent jobs from 'locking up')
+The value for --timeout is formatted in golang time.Duration format (see: https://golang.org/pkg/time/#Duration).
+When the timeout is reached the background command gets canceled.
+
+```shell
+$ find . -iname '*.jpg' | machma --timeout 5s --  mogrify -resize 1200x1200 -filter Lanczos {}
+```
+
 ### Files With Spaces
 
 Sometimes filenames have spaces, which may be problematic with shell commands.
@@ -76,11 +85,12 @@ $ go get github.com/fd0/machma
 Afterwards you can view the online help:
 ```shell
 $ machma --help
-Usage of machma:
-      --no-id            hide the job id in the log
-      --no-name          hide the job name in the log
-      --no-timestamp     hide the time stamp in the log
-  -0, --null             use null bytes as input separator
-  -p, --procs int        number of parallel porgrams (default 4)
-      --replace string   replace this string in the command to run (default "{}")
+Usage of ./machma:
+      --no-id              hide the job id in the log
+      --no-name            hide the job name in the log
+      --no-timestamp       hide the time stamp in the log
+  -0, --null               use null bytes as input separator
+  -p, --procs int          number of parallel porgrams (default 2)
+      --replace string     replace this string in the command to run (default "{}")
+      --timeout duration   set maximum runtime per queued job (0s == no limit) 
 ```
