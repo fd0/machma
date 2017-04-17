@@ -180,7 +180,7 @@ func updateTerminal(t *termstatus.Terminal, stats Stats, data map[string]string)
 
 		etaEWMA.Report(stats.processed)
 
-		if time.Since(lastETAUpdate) > 200*time.Millisecond {
+		if time.Since(lastETAUpdate) > time.Second {
 			lastETA = etaEWMA.ETA()
 			lastETAUpdate = time.Now()
 		}
