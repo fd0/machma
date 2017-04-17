@@ -60,8 +60,11 @@ func (e *ewma) Report(totalCompletedItems int) {
 func (e *ewma) ETA() time.Duration {
 	remaining := e.total - e.completed
 
-	perItem := time.Duration(e.β * float64(e.last.Sub(e.start)) / float64(e.completed))
-	perItem += time.Duration((1 - e.β) * float64(e.perItem))
+	perItem := e.perItem
+	if e.completed > 0 {
+		perItem = time.Duration(e.β * float64(e.last.Sub(e.start)) / float64(e.completed))
+		perItem += time.Duration((1 - e.β) * float64(e.perItem))
+	}
 
 	d := time.Duration(remaining) * perItem
 	return d
