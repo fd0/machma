@@ -185,11 +185,10 @@ func updateTerminal(t *termstatus.Terminal, stats Stats, data map[string]string)
 			lastETAUpdate = time.Now()
 		}
 
-		status = fmt.Sprintf("[%s] %d/%d processed (%.2f%%) (%d failed) ETA %v, %d/%d workers:",
+		status = fmt.Sprintf("[%s] %d/%d processed (%d failed) ETA %v, %d/%d workers:",
 			formatDuration(time.Since(stats.start)),
 			stats.processed,
 			stats.jobs,
-			float64(stats.processed)/float64(stats.jobs)*100,
 			stats.failed,
 			formatDuration(lastETA),
 			len(data),
