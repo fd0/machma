@@ -13,19 +13,22 @@ type ewma struct {
 	completed     int
 	lastCompleted int
 
-	last time.Time
+	start time.Time
+	last  time.Time
 
 	perItem time.Duration
 
-	α float64
+	α, β float64
 }
 
 // newEWMA returns a new EWMA for total items.
 func newEWMA(start time.Time, totalItems int) *ewma {
 	return &ewma{
+		start: start,
 		last:  start,
 		total: totalItems,
 		α:     0.10,
+		β:     0.5,
 	}
 }
 
@@ -56,6 +59,10 @@ func (e *ewma) Report(totalCompletedItems int) {
 // ETA returns the estimated remaining time.
 func (e *ewma) ETA() time.Duration {
 	remaining := e.total - e.completed
-	d := time.Duration(remaining) * e.perItem
+
+	perItem := time.Duration(e.β * float64(e.last.Sub(e.start)) / float64(e.completed))
+	perItem += time.Duration((1 - e.β) * float64(e.perItem))
+
+	d := time.Duration(remaining) * perItem
 	return d
 }
