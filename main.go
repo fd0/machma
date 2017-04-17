@@ -57,7 +57,7 @@ func ScanNullSeparatedValues(data []byte, atEOF bool) (advance int, token []byte
 	return 0, nil, nil
 }
 
-func parseInput(ch chan<- *Command, cmd string, args []string) {
+func parseInput(ch chan<- *Command, jobNumCh chan<- int, cmd string, args []string) {
 	defer close(ch)
 
 	sc := bufio.NewScanner(os.Stdin)
@@ -67,6 +67,11 @@ func parseInput(ch chan<- *Command, cmd string, args []string) {
 	}
 
 	jobnum := 1
+	defer func() {
+		jobNumCh <- jobnum
+		close(jobNumCh)
+	}()
+
 	for sc.Scan() {
 		cmdName := cmd
 		cmdArgs := make([]string, 0, len(args))
@@ -90,6 +95,11 @@ func parseInput(ch chan<- *Command, cmd string, args []string) {
 			Cmd:  cmdName,
 			Args: cmdArgs,
 		}
+
+		if jobnum%10 == 0 {
+			jobNumCh <- jobnum
+		}
+
 		jobnum++
 	}
 }
@@ -149,20 +159,35 @@ var (
 	smoothLines            = 0
 )
 
-func updateTerminal(t *termstatus.Terminal, start time.Time, processed, failed int, data map[string]string) {
+func updateTerminal(t *termstatus.Terminal, stats Stats, data map[string]string) {
 	keys := make([]string, 0, len(data))
 	for k := range data {
 		keys = append(keys, k)
 	}
 	sort.Sort(sort.StringSlice(keys))
 
+	var status string
+
+	if stats.jobsFinal {
+		status = fmt.Sprintf("[%s] %d (%.2f%%) processed (%d failed), %d/%d workers:",
+			formatDuration(time.Since(stats.start)),
+			stats.processed,
+			float64(stats.processed)/float64(stats.jobs)*100,
+			stats.failed,
+			len(data),
+			opts.threads)
+	} else {
+		status = fmt.Sprintf("[%s] %d/%d+ processed (%d failed), %d/%d workers:",
+			formatDuration(time.Since(stats.start)),
+			stats.processed,
+			stats.jobs,
+			stats.failed,
+			len(data),
+			opts.threads)
+	}
+
 	lines := make([]string, 0, len(data)+3)
-	lines = append(lines, colorStatusLine(fmt.Sprintf("[%s] %d processed (%d failed), %d/%d workers:",
-		formatDuration(time.Since(start)),
-		processed,
-		failed,
-		len(data),
-		opts.threads)))
+	lines = append(lines, colorStatusLine(status))
 
 	for _, key := range keys {
 		lines = append(lines, data[key])
@@ -191,25 +216,34 @@ func updateTerminal(t *termstatus.Terminal, start time.Time, processed, failed i
 
 const timeFormat = "2006-01-02 15:04:05"
 
-func status(ctx context.Context, wg *sync.WaitGroup, t *termstatus.Terminal, outCh <-chan Status) {
-	defer wg.Done()
-	stat := make(map[string]string)
+// Stats contains information about jobs.
+type Stats struct {
+	start time.Time
 
-	start := time.Now()
+	jobs      int
+	jobsFinal bool
+
+	processed int
+	failed    int
+}
+
+func status(ctx context.Context, wg *sync.WaitGroup, t *termstatus.Terminal, outCh <-chan Status, inCount <-chan int) {
+	defer wg.Done()
+	data := make(map[string]string)
+
 	ticker := time.NewTicker(200 * time.Millisecond)
 	defer ticker.Stop()
 
-	var stats = struct {
-		processed int
-		failed    int
-	}{}
+	stats := Stats{
+		start: time.Now(),
+	}
 
 	defer func() {
 		t.Finish()
 		fmt.Fprintf(color.Output, "\nprocessed %d items (%d failures) in %s\n",
 			stats.processed,
 			stats.failed,
-			formatDuration(time.Since(start)))
+			formatDuration(time.Since(stats.start)))
 	}()
 
 	for {
@@ -246,7 +280,7 @@ func status(ctx context.Context, wg *sync.WaitGroup, t *termstatus.Terminal, out
 				t.Print(m + msg)
 			}
 
-			stat[s.Tag] = fmt.Sprintf("%v %v", colorTag(s.Tag), msg)
+			data[s.Tag] = fmt.Sprintf("%v %v", colorTag(s.Tag), msg)
 
 			if s.Done {
 				stats.processed++
@@ -255,12 +289,20 @@ func status(ctx context.Context, wg *sync.WaitGroup, t *termstatus.Terminal, out
 					stats.failed++
 				}
 
-				delete(stat, s.Tag)
+				delete(data, s.Tag)
 			}
 
-			updateTerminal(t, start, stats.processed, stats.failed, stat)
+			updateTerminal(t, stats, data)
+		case jobNum, ok := <-inCount:
+			if !ok {
+				stats.jobsFinal = true
+				inCount = nil
+				continue
+			}
+			stats.jobs = jobNum
+			updateTerminal(t, stats, data)
 		case <-ticker.C:
-			updateTerminal(t, start, stats.processed, stats.failed, stat)
+			updateTerminal(t, stats, data)
 		}
 	}
 }
@@ -283,12 +325,13 @@ func main() {
 		t = termstatus.New(ctx, os.Stdout)
 	}
 	outCh := make(chan Status)
+	jobNumCh := make(chan int)
 
 	var statusWg sync.WaitGroup
 	statusWg.Add(1)
-	go status(ctx, &statusWg, t, outCh)
+	go status(ctx, &statusWg, t, outCh, jobNumCh)
 
-	ch := make(chan *Command)
+	ch := make(chan *Command, 50000)
 
 	var workersWg sync.WaitGroup
 	for i := 0; i < opts.threads; i++ {
@@ -308,7 +351,7 @@ func main() {
 
 	checkForPlaceholder(cmdname, args)
 
-	go parseInput(ch, cmdname, args)
+	go parseInput(ch, jobNumCh, cmdname, args)
 
 	workersWg.Wait()
 	close(outCh)
