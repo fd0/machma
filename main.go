@@ -183,6 +183,12 @@ func updateTerminal(t *termstatus.Terminal, stats Stats, data map[string]string)
 		if time.Since(lastETAUpdate) > time.Second {
 			lastETA = etaEWMA.ETA()
 			lastETAUpdate = time.Now()
+
+		}
+
+		eta := "---"
+		if lastETA > 0 {
+			eta = formatDuration(lastETA)
 		}
 
 		status = fmt.Sprintf("[%s] %d/%d processed (%d failed) ETA %v, %d/%d workers:",
@@ -190,7 +196,7 @@ func updateTerminal(t *termstatus.Terminal, stats Stats, data map[string]string)
 			stats.processed,
 			stats.jobs,
 			stats.failed,
-			formatDuration(lastETA),
+			eta,
 			len(data),
 			opts.threads)
 	} else {
