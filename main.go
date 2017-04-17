@@ -66,13 +66,15 @@ func parseInput(ch chan<- *Command, jobNumCh chan<- int, cmd string, args []stri
 		sc.Split(ScanNullSeparatedValues)
 	}
 
-	jobnum := 1
+	jobnum := 0
 	defer func() {
 		jobNumCh <- jobnum
 		close(jobNumCh)
 	}()
 
 	for sc.Scan() {
+		jobnum++
+
 		cmdName := cmd
 		cmdArgs := make([]string, 0, len(args))
 
@@ -99,8 +101,6 @@ func parseInput(ch chan<- *Command, jobNumCh chan<- int, cmd string, args []stri
 		if jobnum%10 == 0 {
 			jobNumCh <- jobnum
 		}
-
-		jobnum++
 	}
 }
 
