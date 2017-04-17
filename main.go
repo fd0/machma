@@ -147,15 +147,9 @@ var (
 	lastLineCount          = 0
 	lastLineCountReduction time.Time
 	smoothLines            = 0
-	lastUpdate             time.Time
 )
 
 func updateTerminal(t *termstatus.Terminal, start time.Time, processed, failed int, data map[string]string) {
-	if time.Since(lastUpdate) < 50*time.Millisecond {
-		return
-	}
-	lastUpdate = time.Now()
-
 	keys := make([]string, 0, len(data))
 	for k := range data {
 		keys = append(keys, k)
