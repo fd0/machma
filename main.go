@@ -157,6 +157,9 @@ var (
 	lastLineCount          = 0
 	lastLineCountReduction time.Time
 	smoothLines            = 0
+	etaEWMA                *ewma
+	lastETA                time.Duration
+	lastETAUpdate          time.Time
 )
 
 func updateTerminal(t *termstatus.Terminal, stats Stats, data map[string]string) {
@@ -166,14 +169,29 @@ func updateTerminal(t *termstatus.Terminal, stats Stats, data map[string]string)
 	}
 	sort.Sort(sort.StringSlice(keys))
 
-	var status string
+	var (
+		status string
+	)
 
 	if stats.jobsFinal {
-		status = fmt.Sprintf("[%s] %d (%.2f%%) processed (%d failed), %d/%d workers:",
+		if etaEWMA == nil {
+			etaEWMA = newEWMA(stats.start, stats.jobs)
+		}
+
+		etaEWMA.Report(stats.processed)
+
+		if time.Since(lastETAUpdate) > 200*time.Millisecond {
+			lastETA = etaEWMA.ETA()
+			lastETAUpdate = time.Now()
+		}
+
+		status = fmt.Sprintf("[%s] %d/%d processed (%.2f%%) (%d failed) ETA %v, %d/%d workers:",
 			formatDuration(time.Since(stats.start)),
 			stats.processed,
+			stats.jobs,
 			float64(stats.processed)/float64(stats.jobs)*100,
 			stats.failed,
+			formatDuration(lastETA),
 			len(data),
 			opts.threads)
 	} else {
