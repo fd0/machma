@@ -32,19 +32,19 @@ status of the instances of the program running in parallel. The line for an
 instance will either contain the name of the file (in this case) that is being
 processed followed by the newest message printed by the program.
 
-![demo: resizing files](demo.gif)
+![demo: resizing files](demos/demo1.gif)
 
 
 Ping a large number of hosts, but only run two jobs in parallel:
 
 ```shell
-$ cat /tmp/ip-address-list | machma -p 2 -- ping -c 2 -q {}
+$ cat /tmp/ips | machma -p 2 -- ping -c 2 -q {}
 ```
 
 The program `ping` will exit with an error code when the host is not reachable,
 and `machma` prints an error message for all jobs which returned an error code.
 
-![demo: ping hosts](demo2.gif)
+![demo: ping hosts](demos/demo2a.gif)
 
 A slightly more sophisticated (concerning shell magic) example is the
 following, which does the same but recduces the output printed by `ping` a lot:
@@ -53,7 +53,7 @@ following, which does the same but recduces the output printed by `ping` a lot:
 $ cat /tmp/ips | machma -- sh -c 'ping -c 2 -q $0 > /dev/null && echo alive' {}
 ```
 
-![demo: ping hosts again](demo2b.gif)
+![demo: ping hosts again](demos/demo2b.gif)
 
 
 Using `--timeout` you can limit the time mogrify is allowed to run per picture. (Prevent jobs from 'locking up')

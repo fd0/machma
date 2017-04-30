@@ -1,0 +1,1 @@
+cat /tmp/ips | machma -p 2 -- ping -c 2 -q {}

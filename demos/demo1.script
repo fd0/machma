@@ -1,0 +1,1 @@
+find . -iname '*.jpg' | machma --  mogrify -resize 1200x1200 -filter Lanczos {}
