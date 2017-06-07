@@ -28,7 +28,7 @@ var opts = struct {
 }{}
 
 func init() {
-	pflag.IntVarP(&opts.threads, "procs", "p", runtime.NumCPU(), "number of parallel porgrams")
+	pflag.IntVarP(&opts.threads, "procs", "p", runtime.NumCPU(), "number of parallel programs")
 	pflag.StringVar(&opts.placeholder, "replace", "{}", "replace this string in the command to run")
 	pflag.DurationVar(&opts.workerTimeout, "timeout", 0*time.Second, "set maximum runtime per queued job (0s == no limit)")
 	pflag.BoolVarP(&opts.useNullSeparator, "null", "0", false, "use null bytes as input separator")

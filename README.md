@@ -93,7 +93,7 @@ Usage of ./machma:
       --no-name            hide the job name in the log
       --no-timestamp       hide the time stamp in the log
   -0, --null               use null bytes as input separator
-  -p, --procs int          number of parallel porgrams (default 2)
+  -p, --procs int          number of parallel programs (default 2)
       --replace string     replace this string in the command to run (default "{}")
-      --timeout duration   set maximum runtime per queued job (0s == no limit) 
+      --timeout duration   set maximum runtime per queued job (0s == no limit)
 ```
