@@ -82,12 +82,12 @@ $ find . -iname '*.jpg' -print0 | machma --null --  mogrify -resize 1200x1200 -f
 Installation is very easy, install a recent version of Go and run:
 
 ```shell
-$ go get github.com/fd0/machma
+$ go run build.go
 ```
 
 Afterwards you can view the online help:
 ```shell
-$ machma --help
+$ ./machma --help
 Usage of ./machma:
       --no-id              hide the job id in the log
       --no-name            hide the job name in the log
