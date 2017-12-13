@@ -167,7 +167,7 @@ func updateTerminal(t *termstatus.Terminal, stats Stats, data map[string]string)
 	for k := range data {
 		keys = append(keys, k)
 	}
-	sort.Sort(sort.StringSlice(keys))
+	sort.Strings(keys)
 
 	var (
 		status string
