@@ -24,7 +24,7 @@ install:
 script:
   - go test -v
   - gox -os="linux windows freebsd openbsd"
-  - diff <(goimports -d .) <(printf "")
+  - diff <(goimports -d *.go) <(printf "")
   - diff <(unused .) <(printf "")
   - diff <(gosimple .) <(printf "")
   - diff <(staticcheck .) <(printf "")
