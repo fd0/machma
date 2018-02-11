@@ -1,4 +1,30 @@
-// +build ignore
+// BSD 2-Clause License
+//
+// Copyright (c) 2016-2018, Alexander Neumann <alexander@bumpern.de>
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+// * Redistributions of source code must retain the above copyright notice, this
+//   list of conditions and the following disclaimer.
+//
+// * Redistributions in binary form must reproduce the above copyright notice,
+//   this list of conditions and the following disclaimer in the documentation
+//   and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+// +build ignore_build_go
 
 package main
 
@@ -11,8 +37,27 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 )
+
+// config contains the configuration for the program to build.
+var config = Config{
+	Name:       "machma",                          // name of the program executable and directory
+	Namespace:  "github.com/fd0/machma",           // subdir of GOPATH, e.g. "github.com/foo/bar"
+	Main:       "github.com/fd0/machma",           // package name for the main package
+	Tests:      []string{"github.com/fd0/machma"}, // tests to run
+	MinVersion: GoVersion{1, 3, 0},                // minimum Go version needed for this program
+}
+
+// Config configures the build.
+type Config struct {
+	Name       string
+	Namespace  string
+	Main       string
+	Tests      []string
+	MinVersion GoVersion
+}
 
 var (
 	verbose    bool
@@ -20,18 +65,6 @@ var (
 	runTests   bool
 	enableCGO  bool
 )
-
-var config = struct {
-	Name      string
-	Namespace string
-	Main      string
-	Tests     []string
-}{
-	Name:      "machma",                          // name of the program executable and directory
-	Namespace: "github.com/fd0/machma",           // subdir of GOPATH, e.g. "github.com/foo/bar"
-	Main:      "github.com/fd0/machma",           // package name for the main package
-	Tests:     []string{"github.com/fd0/machma"}, // tests to run
-}
 
 // specialDir returns true if the file begins with a special character ('.' or '_').
 func specialDir(name string) bool {
@@ -308,7 +341,83 @@ func (cs Constants) LDFlags() string {
 	return strings.Join(l, " ")
 }
 
+// GoVersion is the version of Go used to compile the project.
+type GoVersion struct {
+	Major int
+	Minor int
+	Patch int
+}
+
+// ParseGoVersion parses the Go version s. If s cannot be parsed, the returned GoVersion is null.
+func ParseGoVersion(s string) (v GoVersion) {
+	if !strings.HasPrefix(s, "go") {
+		return
+	}
+
+	s = s[2:]
+	data := strings.Split(s, ".")
+	if len(data) != 3 {
+		return
+	}
+
+	major, err := strconv.Atoi(data[0])
+	if err != nil {
+		return
+	}
+
+	minor, err := strconv.Atoi(data[1])
+	if err != nil {
+		return
+	}
+
+	patch, err := strconv.Atoi(data[2])
+	if err != nil {
+		return
+	}
+
+	v = GoVersion{
+		Major: major,
+		Minor: minor,
+		Patch: patch,
+	}
+	return
+}
+
+// AtLeast returns true if v is at least as new as other. If v is empty, true is returned.
+func (v GoVersion) AtLeast(other GoVersion) bool {
+	var empty GoVersion
+
+	// the empty version satisfies all versions
+	if v == empty {
+		return true
+	}
+
+	if v.Major < other.Major {
+		return false
+	}
+
+	if v.Minor < other.Minor {
+		return false
+	}
+
+	if v.Patch < other.Patch {
+		return false
+	}
+
+	return true
+}
+
+func (v GoVersion) String() string {
+	return fmt.Sprintf("Go %d.%d.%d", v.Major, v.Minor, v.Patch)
+}
+
 func main() {
+	ver := ParseGoVersion(runtime.Version())
+	if !ver.AtLeast(config.MinVersion) {
+		fmt.Fprintf(os.Stderr, "%s detected, this program requires at least %s\n", ver, config.MinVersion)
+		os.Exit(1)
+	}
+
 	buildTags := []string{}
 
 	skipNext := false
