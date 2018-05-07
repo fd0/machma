@@ -262,7 +262,6 @@ func status(ctx context.Context, wg *sync.WaitGroup, t *termstatus.Terminal, out
 	}
 
 	defer func() {
-		t.Finish()
 		fmt.Fprintf(color.Output, "\nprocessed %d items (%d failures) in %s\n",
 			stats.processed,
 			stats.failed,
@@ -343,14 +342,20 @@ func main() {
 
 	var t *termstatus.Terminal
 	if runtime.GOOS == "windows" {
-		t = termstatus.New(ctx, &fakeTerminal{color.Output, os.Stdout.Fd()})
+		t = termstatus.New(&fakeTerminal{color.Output, os.Stdout.Fd()}, os.Stderr, false)
 	} else {
-		t = termstatus.New(ctx, os.Stdout)
+		t = termstatus.New(os.Stdout, os.Stderr, false)
 	}
 	outCh := make(chan Status)
 	jobNumCh := make(chan int)
 
 	var statusWg sync.WaitGroup
+	statusWg.Add(1)
+	go func() {
+		t.Run(ctx)
+		statusWg.Done()
+	}()
+
 	statusWg.Add(1)
 	go status(ctx, &statusWg, t, outCh, jobNumCh)
 
@@ -378,6 +383,8 @@ func main() {
 
 	workersWg.Wait()
 	close(outCh)
+
+	cancel()
 
 	statusWg.Wait()
 }
