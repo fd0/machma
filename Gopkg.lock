@@ -31,6 +31,12 @@
   revision = "e57e3eeb33f795204c1ca35f56c44f83227c6e66"
   version = "v1.0.0"
 
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/sys"
+  packages = ["unix"]
+  revision = "9527bec2660bd847c050fda93a0f0c6dee0800bb"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
