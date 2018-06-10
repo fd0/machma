@@ -31,15 +31,9 @@
   revision = "e57e3eeb33f795204c1ca35f56c44f83227c6e66"
   version = "v1.0.0"
 
-[[projects]]
-  branch = "master"
-  name = "golang.org/x/sys"
-  packages = ["unix"]
-  revision = "dd9ec17814d5b1de388ebe438ec013d57d8b3779"
-
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d13628dd5a64802cfb955984aeb7076988260f2fbcdae2a3ac50fa039d81451e"
+  inputs-digest = "d27ec01287dd1c116e6072da937a494f6dbf9d671d50fc38bd9474233ead74df"
   solver-name = "gps-cdcl"
   solver-version = 1
