@@ -5,6 +5,7 @@ sudo: false
 go:
   - "1.9.X"
   - "1.10.X"
+  - "1.11.X"
   - tip
 
 matrix:
