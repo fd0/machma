@@ -24,6 +24,7 @@ install:
 script:
   - go test -v
   - gox -os="linux windows freebsd openbsd"
+  - go run build.go
   - diff <(goimports -d *.go) <(printf "")
   - diff <(unused .) <(printf "")
   - diff <(gosimple .) <(printf "")
