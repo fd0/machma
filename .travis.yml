@@ -3,14 +3,9 @@ dist: trusty
 sudo: false
 
 go:
-  - "1.9.X"
-  - "1.10.X"
-  - "1.11.X"
-  - tip
-
-matrix:
-  allow_failures:
-    - go: tip
+  - "1.9.x"
+  - "1.10.x"
+  - "1.11.x"
 
 install:
   - go version
