@@ -19,7 +19,28 @@ type Command struct {
 
 // Run executes the command.
 func (c *Command) Run(ctx context.Context, outCh chan<- Status) error {
-	cmd := exec.CommandContext(ctx, c.Cmd, c.Args...)
+	cmd := exec.Command(c.Cmd, c.Args...)
+
+	// make sure the new process and all children get a new process group ID
+	createProcessGroup(cmd)
+
+	// done is closed when the process has exited
+	done := make(chan struct{})
+
+	// wg tracks all goroutines started
+	var wg sync.WaitGroup
+
+	// start a goroutine which kills the process group when the context is cancelled
+	wg.Add(1)
+	go func() {
+		select {
+		case <-ctx.Done():
+			killProcessGroup(cmd)
+		case <-done:
+		}
+		wg.Done()
+	}()
+
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return err
@@ -29,11 +50,11 @@ func (c *Command) Run(ctx context.Context, outCh chan<- Status) error {
 		return err
 	}
 
-	var wg sync.WaitGroup
 	wg.Add(2)
 	go c.tagLines(&wg, false, stdout, outCh)
 	go c.tagLines(&wg, true, stderr, outCh)
 	err = cmd.Run()
+	close(done)
 	wg.Wait()
 
 	return err
