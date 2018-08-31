@@ -3,7 +3,6 @@ dist: trusty
 sudo: false
 
 go:
-  - "1.9.x"
   - "1.10.x"
   - "1.11.x"
 
@@ -19,7 +18,7 @@ install:
 script:
   - go test -v
   - gox -os="linux windows freebsd openbsd"
-  - go run build.go
+  - go run -mod=vendor build.go || go run build.go
   - diff <(goimports -d *.go) <(printf "")
   - diff <(unused .) <(printf "")
   - diff <(gosimple .) <(printf "")
