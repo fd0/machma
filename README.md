@@ -1,6 +1,3 @@
-[![Build Status](https://travis-ci.org/fd0/machma.svg?branch=master)](https://travis-ci.org/fd0/machma)
-[![Say Thanks!](https://img.shields.io/badge/Say%20Thanks-!-1EAEDB.svg)](https://saythanks.io/to/fd0)
-
 # machma - Easy parallel execution of commands with live feedback
 
 ## Introduction
