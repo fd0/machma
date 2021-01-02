@@ -1,0 +1,24 @@
+---
+# enable all linters except the following
+linters:
+  enable-all: true
+  disable:
+    - testpackage
+    - gochecknoglobals
+    - exhaustivestruct
+    - asciicheck
+    - wrapcheck
+
+linters-settings:
+  # make function length a bit less strict
+  funlen:
+    lines: 150
+    statements: 80
+
+  # don't report simplifications
+  gofmt:
+    simplify: false
+
+  # tolerate up to 130 chars per line
+  lll:
+    line-length: 130

@@ -22,6 +22,7 @@ type ewma struct {
 }
 
 // newEWMA returns a new EWMA for total items.
+//nolint:gomnd
 func newEWMA(start time.Time, totalItems int) *ewma {
 	return &ewma{
 		start: start,
@@ -50,6 +51,7 @@ func (e *ewma) Report(totalCompletedItems int) {
 	// use the first measurement directly, without applying α
 	if e.perItem == 0 {
 		e.perItem = lastItemEstimate
+
 		return
 	}
 
@@ -67,5 +69,6 @@ func (e *ewma) ETA() time.Duration {
 	}
 
 	d := time.Duration(remaining) * perItem
+
 	return d
 }

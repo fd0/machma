@@ -27,18 +27,7 @@ var opts = struct {
 	hideName         bool
 }{}
 
-func init() {
-	pflag.IntVarP(&opts.threads, "procs", "p", runtime.NumCPU(), "number of parallel programs")
-	pflag.StringVar(&opts.placeholder, "replace", "{}", "replace this string in the command to run")
-	pflag.DurationVar(&opts.workerTimeout, "timeout", 0*time.Second, "set maximum runtime per queued job (0s == no limit)")
-	pflag.BoolVarP(&opts.useNullSeparator, "null", "0", false, "use null bytes as input separator")
-	pflag.BoolVar(&opts.hideJobID, "no-id", false, "hide the job id in the log")
-	pflag.BoolVar(&opts.hideTimestamp, "no-timestamp", false, "hide the time stamp in the log")
-	pflag.BoolVar(&opts.hideName, "no-name", false, "hide the job name in the log")
-	pflag.Parse()
-}
-
-// ScanNullSeparatedValues splits data by null bytes
+// ScanNullSeparatedValues splits data by null bytes.
 func ScanNullSeparatedValues(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	if atEOF && len(data) == 0 {
 		return 0, nil, nil
@@ -67,6 +56,7 @@ func parseInput(ch chan<- *Command, jobNumCh chan<- int, cmd string, args []stri
 	}
 
 	jobnum := 0
+
 	defer func() {
 		jobNumCh <- jobnum
 		close(jobNumCh)
@@ -82,13 +72,14 @@ func parseInput(ch chan<- *Command, jobNumCh chan<- int, cmd string, args []stri
 
 		if line == "" {
 			fmt.Fprintf(os.Stderr, "ignoring empty item\n")
+
 			continue
 		}
 
-		cmdName = strings.Replace(cmd, opts.placeholder, line, -1)
+		cmdName = strings.ReplaceAll(cmdName, opts.placeholder, line)
 
 		for _, arg := range args {
-			cmdArgs = append(cmdArgs, strings.Replace(arg, opts.placeholder, line, -1))
+			cmdArgs = append(cmdArgs, strings.ReplaceAll(arg, opts.placeholder, line))
 		}
 
 		ch <- &Command{
@@ -116,7 +107,7 @@ func checkForPlaceholder(cmdname string, args []string) {
 	}
 
 	fmt.Fprintf(os.Stderr, "no placeholder found\n")
-	os.Exit(2)
+	os.Exit(2) //nolint:gomnd
 }
 
 // Status is one message printed by a command.
@@ -130,6 +121,7 @@ type Status struct {
 	Start bool
 }
 
+//nolint:gomnd
 func formatDuration(d time.Duration) string {
 	sec := uint64(d / time.Second)
 
@@ -137,6 +129,7 @@ func formatDuration(d time.Duration) string {
 	sec -= hours * 3600
 	min := sec / 60
 	sec -= min * 60
+
 	if hours > 0 {
 		return fmt.Sprintf("%d:%02d:%02d", hours, min, sec)
 	}
@@ -167,11 +160,10 @@ func updateTerminal(t *termstatus.Terminal, stats Stats, data map[string]string)
 	for k := range data {
 		keys = append(keys, k)
 	}
+
 	sort.Strings(keys)
 
-	var (
-		status string
-	)
+	var status string
 
 	if stats.jobsFinal {
 		if etaEWMA == nil {
@@ -183,7 +175,6 @@ func updateTerminal(t *termstatus.Terminal, stats Stats, data map[string]string)
 		if time.Since(lastETAUpdate) > time.Second {
 			lastETA = etaEWMA.ETA()
 			lastETAUpdate = time.Now()
-
 		}
 
 		eta := "---"
@@ -209,7 +200,7 @@ func updateTerminal(t *termstatus.Terminal, stats Stats, data map[string]string)
 			opts.threads)
 	}
 
-	lines := make([]string, 0, len(data)+3)
+	lines := make([]string, 0, len(data)+3) //nolint:gomnd
 	lines = append(lines, colorStatusLine(status))
 
 	for _, key := range keys {
@@ -250,11 +241,15 @@ type Stats struct {
 	failed    int
 }
 
+const statusUpdateInterval = 200 * time.Millisecond
+
+//nolint:gocognit
 func status(ctx context.Context, wg *sync.WaitGroup, t *termstatus.Terminal, outCh <-chan Status, inCount <-chan int) {
 	defer wg.Done()
+
 	data := make(map[string]string)
 
-	ticker := time.NewTicker(200 * time.Millisecond)
+	ticker := time.NewTicker(statusUpdateInterval)
 	defer ticker.Stop()
 
 	stats := Stats{
@@ -319,8 +314,10 @@ func status(ctx context.Context, wg *sync.WaitGroup, t *termstatus.Terminal, out
 			if !ok {
 				stats.jobsFinal = true
 				inCount = nil
+
 				continue
 			}
+
 			stats.jobs = jobNum
 			updateTerminal(t, stats, data)
 		case <-ticker.C:
@@ -336,7 +333,18 @@ type fakeTerminal struct {
 
 func (t fakeTerminal) Fd() uintptr { return t.fd }
 
+const commandBuffer = 50000
+
 func main() {
+	pflag.IntVarP(&opts.threads, "procs", "p", runtime.NumCPU(), "number of parallel programs")
+	pflag.StringVar(&opts.placeholder, "replace", "{}", "replace this string in the command to run")
+	pflag.DurationVar(&opts.workerTimeout, "timeout", 0*time.Second, "set maximum runtime per queued job (0s == no limit)")
+	pflag.BoolVarP(&opts.useNullSeparator, "null", "0", false, "use null bytes as input separator")
+	pflag.BoolVar(&opts.hideJobID, "no-id", false, "hide the job id in the log")
+	pflag.BoolVar(&opts.hideTimestamp, "no-timestamp", false, "hide the time stamp in the log")
+	pflag.BoolVar(&opts.hideName, "no-name", false, "hide the job name in the log")
+	pflag.Parse()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -346,24 +354,30 @@ func main() {
 	} else {
 		t = termstatus.New(os.Stdout, os.Stderr, false)
 	}
+
 	outCh := make(chan Status)
 	jobNumCh := make(chan int)
 
 	var statusWg sync.WaitGroup
+
 	statusWg.Add(1)
+
 	go func() {
 		t.Run(ctx)
 		statusWg.Done()
 	}()
 
 	statusWg.Add(1)
+
 	go status(ctx, &statusWg, t, outCh, jobNumCh)
 
-	ch := make(chan *Command, 50000)
+	ch := make(chan *Command, commandBuffer)
 
 	var workersWg sync.WaitGroup
+
 	for i := 0; i < opts.threads; i++ {
 		workersWg.Add(1)
+
 		go worker(&workersWg, ch, outCh)
 	}
 
@@ -371,7 +385,11 @@ func main() {
 	if len(args) == 0 {
 		fmt.Fprintf(os.Stderr, "no command given\n")
 		pflag.Usage()
-		os.Exit(1)
+
+		// yes, I know, calling os.Exit() ignores the defer "cancel()" call at
+		// the beginning of main(), but we're quitting the process here so it
+		// doesn't matter
+		os.Exit(1) //nolint:gocritic
 	}
 
 	cmdname := args[0]

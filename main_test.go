@@ -22,6 +22,8 @@ var nullTests = []struct {
 }
 
 func TestScanNullSeparatedValues(t *testing.T) {
+	t.Parallel()
+
 	for i, test := range nullTests {
 		sc := bufio.NewScanner(strings.NewReader(test.input))
 		sc.Split(ScanNullSeparatedValues)
