@@ -1,5 +1,7 @@
 module github.com/fd0/machma
 
+go 1.15
+
 require (
 	github.com/fatih/color v1.7.0
 	github.com/fd0/termstatus v1.0.0
