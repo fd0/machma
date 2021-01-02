@@ -1,3 +1,5 @@
+[![Status badge for tests](https://github.com/fd0/machma/workflows/Build%20and%20tests/badge.svg)](https://github.com/fd0/machma/actions?query=workflow%3A%22Build+and+tests%22)
+
 # machma - Easy parallel execution of commands with live feedback
 
 ## Introduction
